@@ -23,7 +23,7 @@ A scalable, modern **Business Intelligence Dashboard** built with **React**, **T
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-repo/bi-dashboard.git
+git clone https://github.com/your-repo/bi-dashboard](https://github.com/fingergunsDEV/DashboardData/).git
 cd bi-dashboard
 ```
 
