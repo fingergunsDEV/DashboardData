@@ -9,6 +9,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    
+    
+  </style>
 </head>
 <body class="bg-gray-100 font-sans">
   <div id="root"></div>
@@ -16,7 +20,7 @@
     const { useState, useEffect } = React;
     const { createRoot } = ReactDOM;
 
-    const mockData = {
+    const Data = {
       Sales: [{ month: 'Jan', value: 12000 }, { month: 'Feb', value: 15000 }, { month: 'Mar', value: 18000 }],
       Marketing: [{ campaign: 'Email', leads: 200 }, { campaign: 'Social', leads: 350 }, { campaign: 'SEO', leads: 150 }],
       'Customer Service': [{ month: 'Jan', tickets: 50 }, { month: 'Feb', tickets: 40 }, { month: 'Mar', tickets: 60 }],
@@ -195,7 +199,7 @@
               <div key={idx} className="bg-gray-50 p-4 rounded-md shadow-md">
                 <h3 className="text-lg font-medium text-blue-800 mb-2">{chart.title}</h3>
                 <ChartComponent
-                  data={mockData[activeTab]}
+                  data={Data[activeTab]}
                   type={chart.type}
                   xKey={chart.xKey}
                   yKey={chart.yKey}
@@ -206,7 +210,7 @@
             ))}
           </div>
           <h3 className="text-lg font-medium text-blue-800 mb-2">Data Table</h3>
-          <DataTable data={mockData[activeTab]} columns={table} />
+          <DataTable data={Data[activeTab]} columns={table} />
         </div>
       );
     };
