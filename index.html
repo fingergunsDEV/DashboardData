@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BI Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { createRoot } = ReactDOM;
+
+    const mockData = {
+      Sales: [{ month: 'Jan', value: 12000 }, { month: 'Feb', value: 15000 }, { month: 'Mar', value: 18000 }],
+      Marketing: [{ campaign: 'Email', leads: 200 }, { campaign: 'Social', leads: 350 }, { campaign: 'SEO', leads: 150 }],
+      'Customer Service': [{ month: 'Jan', tickets: 50 }, { month: 'Feb', tickets: 40 }, { month: 'Mar', tickets: 60 }],
+      Advertising: [{ platform: 'Google', spend: 5000 }, { platform: 'Meta', spend: 3000 }],
+      Branding: [{ channel: 'Twitter', impressions: 10000 }, { channel: 'Instagram', impressions: 8000 }],
+      OKR: [{ goal: 'Q1', progress: 75 }, { goal: 'Q2', progress: 50 }],
+      Revenue: [{ month: 'Jan', amount: 20000 }, { month: 'Feb', amount: 25000 }, { month: 'Mar', amount: 30000 }],
+    };
+
+    const Sidebar = ({ setActiveTab }) => {
+      const tabs = ['Sales', 'Marketing', 'Customer Service', 'Advertising', 'Branding', 'OKR', 'Revenue'];
+      return (
+        <div className="w-64 bg-white shadow-md h-screen fixed">
+          <div className="p-4 text-xl font-bold text-blue-800">BI Dashboard</div>
+          <nav className="mt-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                className="w-full text-left p-4 hover:bg-blue-100 rounded-md transition-colors"
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+        </div>
+      );
+    };
+
+    const ChartComponent = ({ data, type, xKey, yKey, title, colors }) => {
+      const canvasRef = React.useRef(null);
+      useEffect(() => {
+        const ctx = canvasRef.current.getContext('2d');
+        const chart = new Chart(ctx, {
+          type,
+          data: {
+            labels: data.map(item => item[xKey]),
+            datasets: [{
+              label: title,
+              data: data.map(item => item[yKey]),
+              backgroundColor: colors?.background || (type === 'bar' ? '#34d399' : '#1e40af'),
+              borderColor: colors?.border || '#1e40af',
+              borderWidth: 2,
+            }],
+          },
+          options: { 
+            scales: { y: { beginAtZero: true } },
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+        return () => chart.destroy();
+      }, [data, type, xKey, yKey, title, colors]);
+      return <canvas ref={canvasRef} className="w-full h-64"></canvas>;
+    };
+
+    const DataTable = ({ data, columns }) => {
+      return (
+        <div className="overflow-x-auto mt-6">
+          <table className="min-w-full bg-white rounded-md shadow-md">
+            <thead>
+              <tr className="bg-blue-800 text-white">
+                {columns.map((col, idx) => (
+                  <th key={idx} className="p-4 text-left">{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, idx) => (
+                <tr key={idx} className="border-t">
+                  {columns.map((col, colIdx) => (
+                    <td key={colIdx} className="p-4">{row[col.key]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
+    const TabContent = ({ activeTab }) => {
+      const config = {
+        Sales: {
+          charts: [
+            { type: 'line', xKey: 'month', yKey: 'value', title: 'Sales Over Time' },
+            { type: 'pie', xKey: 'month', yKey: 'value', title: 'Sales Distribution', 
+              colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
+          ],
+          table: [
+            { key: 'month', label: 'Month' },
+            { key: 'value', label: 'Sales ($)' },
+          ],
+        },
+        Marketing: {
+          charts: [
+            { type: 'bar', xKey: 'campaign', yKey: 'leads', title: 'Marketing Leads' },
+            { type: 'doughnut', xKey: 'campaign', yKey: 'leads', title: 'Leads by Campaign',
+              colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
+          ],
+          table: [
+            { key: 'campaign', label: 'Campaign' },
+            { key: 'leads', label: 'Leads' },
+          ],
+        },
+        'Customer Service': {
+          charts: [
+            { type: 'line', xKey: 'month', yKey: 'tickets', title: 'Support Tickets' },
+            { type: 'bar', xKey: 'month', yKey: 'tickets', title: 'Tickets by Month' },
+          ],
+          table: [
+            { key: 'month', label: 'Month' },
+            { key: 'tickets', label: 'Tickets' },
+          ],
+        },
+        Advertising: {
+          charts: [
+            { type: 'bar', xKey: 'platform', yKey: 'spend', title: 'Ad Spend' },
+            { type: 'pie', xKey: 'platform', yKey: 'spend', title: 'Spend Distribution',
+              colors: { background: ['#1e40af', '#34d399'] } },
+          ],
+          table: [
+            { key: 'platform', label: 'Platform' },
+            { key: 'spend', label: 'Spend ($)' },
+          ],
+        },
+        Branding: {
+          charts: [
+            { type: 'bar', xKey: 'channel', yKey: 'impressions', title: 'Brand Impressions' },
+            { type: 'doughnut', xKey: 'channel', yKey: 'impressions', title: 'Impressions by Channel',
+              colors: { background: ['#1e40af', '#34d399'] } },
+          ],
+          table: [
+            { key: 'channel', label: 'Channel' },
+            { key: 'impressions', label: 'Impressions' },
+          ],
+        },
+        OKR: {
+          charts: [
+            { type: 'bar', xKey: 'goal', yKey: 'progress', title: 'OKR Progress' },
+            { type: 'pie', xKey: 'goal', yKey: 'progress', title: 'Goal Progress',
+              colors: { background: ['#1e40af', '#34d399'] } },
+          ],
+          table: [
+            { key: 'goal', label: 'Goal' },
+            { key: 'progress', label: 'Progress (%)' },
+          ],
+        },
+        Revenue: {
+          charts: [
+            { type: 'line', xKey: 'month', yKey: 'amount', title: 'Revenue Over Time' },
+            { type: 'bar', xKey: 'month', yKey: 'amount', title: 'Revenue by Month' },
+          ],
+          table: [
+            { key: 'month', label: 'Month' },
+            { key: 'amount', label: 'Revenue ($)' },
+          ],
+        },
+      };
+
+      if (!config[activeTab]) {
+        return (
+          <div className="p-6 bg-white rounded-md shadow-md">
+            <h2 className="text-2xl font-semibold text-blue-800 mb-4">Error</h2>
+            <p className="text-red-600">Invalid tab selected. Please choose a valid tab.</p>
+          </div>
+        );
+      }
+
+      const { charts, table } = config[activeTab];
+      return (
+        <div className="p-6 bg-white rounded-md shadow-md">
+          <h2 className="text-2xl font-semibold text-blue-800 mb-4">{activeTab}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {charts.map((chart, idx) => (
+              <div key={idx} className="bg-gray-50 p-4 rounded-md shadow-md">
+                <h3 className="text-lg font-medium text-blue-800 mb-2">{chart.title}</h3>
+                <ChartComponent
+                  data={mockData[activeTab]}
+                  type={chart.type}
+                  xKey={chart.xKey}
+                  yKey={chart.yKey}
+                  title={chart.title}
+                  colors={chart.colors}
+                />
+              </div>
+            ))}
+          </div>
+          <h3 className="text-lg font-medium text-blue-800 mb-2">Data Table</h3>
+          <DataTable data={mockData[activeTab]} columns={table} />
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('Sales');
+      return (
+        <div className="flex">
+          <Sidebar setActiveTab={setActiveTab} />
+          <div className="ml-64 p-6 w-full">
+            <TabContent activeTab={activeTab} />
+          </div>
+        </div>
+      );
+    };
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
