@@ -359,11 +359,12 @@
     const App = () => {
       const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'Sales');
       const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-      const [data, setData] = useState(() => {
-        const savedData = localStorage.getItem('dashboardData');
-        return savedData ? JSON.parse(savedData) : initialData;
-      });
-
+      const [data, setData] = useState({});
+useEffect(() => {
+  fetch('https://script.google.com/macros/s/AKfycbyVK36sIySfdwUty3AyRXb5SIWr1pKmL_5wuFkH65fFGDAqd7sutn6apHbKUoCj5pID/exec')
+    .then(res => res.json())
+    .then(setData);
+}, []);
       useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
         localStorage.setItem('theme', theme);
