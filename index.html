@@ -3,21 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BI Dashboard</title>
+  <title>BI Dashboard CRM</title>
   <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    
-    
+    :root {
+      --primary: #1e40af;
+      --secondary: #34d399;
+    }
+    .accessibility-widget { transition: all 0.3s ease; }
+    .accessibility-widget button:focus { outline: 2px solid var(--primary); }
+    [data-theme="dark"] {
+      --bg-color: #1f2937;
+      --text-color: #f3f4f6;
+      --card-bg: #374151;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    [data-theme="light"] {
+      --bg-color: #f3f4f6;
+      --text-color: #1f2937;
+      --card-bg: #ffffff;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="font-sans transition-colors duration-300" data-theme="light">
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
     const { createRoot } = ReactDOM;
 
     const Data = {
@@ -30,28 +46,47 @@
       Revenue: [{ month: 'Jan', amount: 20000 }, { month: 'Feb', amount: 25000 }, { month: 'Mar', amount: 30000 }],
     };
 
-    const Sidebar = ({ setActiveTab }) => {
+    const Sidebar = ({ setActiveTab, theme, toggleTheme, activeTab }) => {
       const tabs = ['Sales', 'Marketing', 'Customer Service', 'Advertising', 'Branding', 'OKR', 'Revenue'];
       return (
-        <div className="w-64 bg-white shadow-md h-screen fixed">
-          <div className="p-4 text-xl font-bold text-blue-800">BI Dashboard</div>
-          <nav className="mt-4">
+        <div className="w-64 bg-[var(--card-bg)] shadow-md h-screen fixed flex flex-col rounded-r-md">
+          <div className="p-4 text-xl font-bold text-[var(--primary)] flex items-center justify-between">
+            <span>BI Dashboard</span>
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-md hover:bg-[var(--secondary)]/20 transition-colors"
+              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+          </div>
+          <nav className="mt-4 flex-1">
             {tabs.map((tab) => (
               <button
                 key={tab}
-                className="w-full text-left p-4 hover:bg-blue-100 rounded-md transition-colors"
+                className="w-full text-left p-4 hover:bg-[var(--secondary)]/10 rounded-md transition-colors text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 onClick={() => setActiveTab(tab)}
+                aria-current={tab === activeTab ? 'page' : undefined}
               >
                 {tab}
               </button>
             ))}
           </nav>
+          <div className="p-4">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => handleFileUpload(e)}
+              className="w-full text-sm text-[var(--text-color)] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-[var(--primary)] file:text-white hover:file:bg-[var(--primary)]/80"
+              aria-label="Upload CSV file"
+            />
+          </div>
         </div>
       );
     };
 
     const ChartComponent = ({ data, type, xKey, yKey, title, colors }) => {
-      const canvasRef = React.useRef(null);
+      const canvasRef = useRef(null);
       useEffect(() => {
         const ctx = canvasRef.current.getContext('2d');
         const chart = new Chart(ctx, {
@@ -61,12 +96,12 @@
             datasets: [{
               label: title,
               data: data.map(item => item[yKey]),
-              backgroundColor: colors?.background || (type === 'bar' ? '#34d399' : '#1e40af'),
-              borderColor: colors?.border || '#1e40af',
+              backgroundColor: colors?.background || (type === 'bar' ? 'var(--secondary)' : 'var(--primary)'),
+              borderColor: colors?.border || 'var(--primary)',
               borderWidth: 2,
             }],
           },
-          options: { 
+          options: {
             scales: { y: { beginAtZero: true } },
             responsive: true,
             maintainAspectRatio: true,
@@ -74,15 +109,15 @@
         });
         return () => chart.destroy();
       }, [data, type, xKey, yKey, title, colors]);
-      return <canvas ref={canvasRef} className="w-full h-64"></canvas>;
+      return <canvas ref={canvasRef} className="w-full h-64" aria-label={`${title} chart`}></canvas>;
     };
 
     const DataTable = ({ data, columns }) => {
       return (
         <div className="overflow-x-auto mt-6">
-          <table className="min-w-full bg-white rounded-md shadow-md">
+          <table className="min-w-full bg-[var(--card-bg)] rounded-md shadow-md">
             <thead>
-              <tr className="bg-blue-800 text-white">
+              <tr className="bg-[var(--primary)] text-white">
                 {columns.map((col, idx) => (
                   <th key={idx} className="p-4 text-left">{col.label}</th>
                 ))}
@@ -92,7 +127,7 @@
               {data.map((row, idx) => (
                 <tr key={idx} className="border-t">
                   {columns.map((col, colIdx) => (
-                    <td key={colIdx} className="p-4">{row[col.key]}</td>
+                    <td key={colIdx} className="p-4 text-[var(--text-color)]">{row[col.key]}</td>
                   ))}
                 </tr>
               ))}
@@ -102,28 +137,115 @@
       );
     };
 
+    const ScoreCard = ({ title, value, subtext }) => (
+      <div className="bg-[var(--card-bg)] p-4 rounded-md shadow-md">
+        <h3 className="text-lg font-medium text-[var(--primary)]">{title}</h3>
+        <p className="text-2xl font-bold text-[var(--text-color)]">{value}</p>
+        <p className="text-sm text-gray-500">{subtext}</p>
+      </div>
+    );
+
+    const AccessibilityWidget = () => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [fontSize, setFontSize] = useState(16);
+      const [highContrast, setHighContrast] = useState(false);
+
+      const adjustFontSize = (delta) => {
+        const newSize = Math.max(12, Math.min(24, fontSize + delta));
+        setFontSize(newSize);
+        document.documentElement.style.fontSize = `${newSize}px`;
+      };
+
+      const toggleHighContrast = () => {
+        setHighContrast(!highContrast);
+        document.body.style.filter = highContrast ? 'none' : 'contrast(1.5)';
+      };
+
+      return (
+        <div className="fixed bottom-4 right-4 accessibility-widget">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-3 bg-[var(--primary)] text-white rounded-full shadow-md hover:bg-[var(--primary)]/80 transition-colors"
+            aria-label="Toggle accessibility options"
+          >
+            ♿
+          </button>
+          {isOpen && (
+            <div className="absolute bottom-12 right-0 bg-[var(--card-bg)] p-4 rounded-md shadow-md w-64">
+              <h3 className="text-lg font-medium text-[var(--text-color)] mb-2">Accessibility</h3>
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-color)]">Font Size</span>
+                  <div>
+                    <button onClick={() => adjustFontSize(-2)} className="p-2 rounded-md bg-[var(--secondary)]/20" aria-label="Decrease font size">-</button>
+                    <span className="mx-2 text-[var(--text-color)]">{fontSize}px</span>
+                    <button onClick={() => adjustFontSize(2)} className="p-2 rounded-md bg-[var(--secondary)]/20" aria-label="Increase font size">+</button>
+                  </div>
+                </div>
+                <button
+                  onClick={toggleHighContrast}
+                  className="p-2 rounded-md bg-[var(--secondary)]/20 text-[var(--text-color)] hover:bg-[var(--secondary)]/30"
+                  aria-label={highContrast ? 'Disable high contrast' : 'Enable high contrast'}
+                >
+                  {highContrast ? 'Disable High Contrast' : 'Enable High Contrast'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const handleFileUpload = (event) => {
+      const file = event.target.files[0];
+      if (file && file.type === 'text/csv') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          const rows = text.split('\n').map(row => row.split(','));
+          const headers = rows[0];
+          const newData = rows.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((header, idx) => {
+              obj[header.trim()] = row[idx]?.trim();
+            });
+            return obj;
+          });
+          localStorage.setItem('uploadedData', JSON.stringify(newData));
+          alert('Data imported successfully! Refresh to see changes.');
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Please upload a valid CSV file.');
+      }
+    };
+
     const TabContent = ({ activeTab }) => {
       const config = {
         Sales: {
           charts: [
             { type: 'line', xKey: 'month', yKey: 'value', title: 'Sales Over Time' },
-            { type: 'pie', xKey: 'month', yKey: 'value', title: 'Sales Distribution', 
-              colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
+            { type: 'pie', xKey: 'month', yKey: 'value', title: 'Sales Distribution', colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
           ],
           table: [
             { key: 'month', label: 'Month' },
             { key: 'value', label: 'Sales ($)' },
           ],
+          scoreCards: [
+            { title: 'Total Sales', value: `$${Data.Sales.reduce((sum, item) => sum + item.value, 0)}`, subtext: 'Q1 2025' },
+          ],
         },
         Marketing: {
           charts: [
             { type: 'bar', xKey: 'campaign', yKey: 'leads', title: 'Marketing Leads' },
-            { type: 'doughnut', xKey: 'campaign', yKey: 'leads', title: 'Leads by Campaign',
-              colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
+            { type: 'doughnut', xKey: 'campaign', yKey: 'leads', title: 'Leads by Campaign', colors: { background: ['#1e40af', '#34d399', '#ff6b6b'] } },
           ],
           table: [
             { key: 'campaign', label: 'Campaign' },
             { key: 'leads', label: 'Leads' },
+          ],
+          scoreCards: [
+            { title: 'Total Leads', value: Data.Marketing.reduce((sum, item) => sum + item.leads, 0), subtext: 'Q1 2025' },
           ],
         },
         'Customer Service': {
@@ -135,38 +257,47 @@
             { key: 'month', label: 'Month' },
             { key: 'tickets', label: 'Tickets' },
           ],
+          scoreCards: [
+            { title: 'Total Tickets', value: Data['Customer Service'].reduce((sum, item) => sum + item.tickets, 0), subtext: 'Q1 2025' },
+          ],
         },
         Advertising: {
           charts: [
             { type: 'bar', xKey: 'platform', yKey: 'spend', title: 'Ad Spend' },
-            { type: 'pie', xKey: 'platform', yKey: 'spend', title: 'Spend Distribution',
-              colors: { background: ['#1e40af', '#34d399'] } },
+            { type: 'pie', xKey: 'platform', yKey: 'spend', title: 'Spend Distribution', colors: { background: ['#1e40af', '#34d399'] } },
           ],
           table: [
             { key: 'platform', label: 'Platform' },
             { key: 'spend', label: 'Spend ($)' },
           ],
+          scoreCards: [
+            { title: 'Total Spend', value: `$${Data.Advertising.reduce((sum, item) => sum + item.spend, 0)}`, subtext: 'Q1 2025' },
+          ],
         },
         Branding: {
           charts: [
             { type: 'bar', xKey: 'channel', yKey: 'impressions', title: 'Brand Impressions' },
-            { type: 'doughnut', xKey: 'channel', yKey: 'impressions', title: 'Impressions by Channel',
-              colors: { background: ['#1e40af', '#34d399'] } },
+            { type: 'doughnut', xKey: 'channel', yKey: 'impressions', title: 'Impressions by Channel', colors: { background: ['#1e40af', '#34d399'] } },
           ],
           table: [
             { key: 'channel', label: 'Channel' },
             { key: 'impressions', label: 'Impressions' },
           ],
+          scoreCards: [
+            { title: 'Total Impressions', value: Data.Branding.reduce((sum, item) => sum + item.impressions, 0), subtext: 'Q1 2025' },
+          ],
         },
         OKR: {
           charts: [
             { type: 'bar', xKey: 'goal', yKey: 'progress', title: 'OKR Progress' },
-            { type: 'pie', xKey: 'goal', yKey: 'progress', title: 'Goal Progress',
-              colors: { background: ['#1e40af', '#34d399'] } },
+            { type: 'pie', xKey: 'goal', yKey: 'progress', title: 'Goal Progress', colors: { background: ['#1e40af', '#34d399'] } },
           ],
           table: [
             { key: 'goal', label: 'Goal' },
             { key: 'progress', label: 'Progress (%)' },
+          ],
+          scoreCards: [
+            { title: 'Average Progress', value: `${Math.round(Data.OKR.reduce((sum, item) => sum + item.progress, 0) / Data.OKR.length)}%`, subtext: 'Q1-Q2 2025' },
           ],
         },
         Revenue: {
@@ -178,26 +309,34 @@
             { key: 'month', label: 'Month' },
             { key: 'amount', label: 'Revenue ($)' },
           ],
+          scoreCards: [
+            { title: 'Total Revenue', value: `$${Data.Revenue.reduce((sum, item) => sum + item.amount, 0)}`, subtext: 'Q1 2025' },
+          ],
         },
       };
 
       if (!config[activeTab]) {
         return (
-          <div className="p-6 bg-white rounded-md shadow-md">
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">Error</h2>
+          <div className="p-6 bg-[var(--card-bg)] rounded-md shadow-md">
+            <h2 className="text-2xl font-semibold text-[var(--primary)] mb-4">Error</h2>
             <p className="text-red-600">Invalid tab selected. Please choose a valid tab.</p>
           </div>
         );
       }
 
-      const { charts, table } = config[activeTab];
+      const { charts, table, scoreCards } = config[activeTab];
       return (
-        <div className="p-6 bg-white rounded-md shadow-md">
-          <h2 className="text-2xl font-semibold text-blue-800 mb-4">{activeTab}</h2>
+        <div className="p-6 bg-[var(--card-bg)] rounded-md shadow-md">
+          <h2 className="text-2xl font-semibold text-[var(--primary)] mb-4">{activeTab}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {scoreCards.map((card, idx) => (
+              <ScoreCard key={idx} title={card.title} value={card.value} subtext={card.subtext} />
+            ))}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {charts.map((chart, idx) => (
-              <div key={idx} className="bg-gray-50 p-4 rounded-md shadow-md">
-                <h3 className="text-lg font-medium text-blue-800 mb-2">{chart.title}</h3>
+              <div key={idx} className="bg-[var(--card-bg)] p-4 rounded-md shadow-md">
+                <h3 className="text-lg font-medium text-[var(--primary)] mb-2">{chart.title}</h3>
                 <ChartComponent
                   data={Data[activeTab]}
                   type={chart.type}
@@ -209,20 +348,33 @@
               </div>
             ))}
           </div>
-          <h3 className="text-lg font-medium text-blue-800 mb-2">Data Table</h3>
+          <h3 className="text-lg font-medium text-[var(--primary)] mb-2">Data Table</h3>
           <DataTable data={Data[activeTab]} columns={table} />
         </div>
       );
     };
 
     const App = () => {
-      const [activeTab, setActiveTab] = useState('Sales');
+      const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'Sales');
+      const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+      useEffect(() => {
+        localStorage.setItem('activeTab', activeTab);
+        localStorage.setItem('theme', theme);
+        document.body.setAttribute('data-theme', theme);
+      }, [activeTab, theme]);
+
+      const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
+      };
+
       return (
-        <div className="flex">
-          <Sidebar setActiveTab={setActiveTab} />
+        <div className="flex min-h-screen bg-[var(--bg-color)]">
+          <Sidebar setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} activeTab={activeTab} />
           <div className="ml-64 p-6 w-full">
             <TabContent activeTab={activeTab} />
           </div>
+          <AccessibilityWidget />
         </div>
       );
     };
