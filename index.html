@@ -47,6 +47,9 @@
       transform: translateY(-4px);
       box-shadow: var(--shadow);
     }
+    .toast {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
   </style>
 </head>
 <body class="transition-colors duration-300" data-theme="light">
@@ -55,7 +58,7 @@
     const { useState, useEffect, useRef } = React;
     const { createRoot } = ReactDOM;
 
-    const Data = {
+    const initialData = {
       Sales: [{ month: 'Jan', value: 12000 }, { month: 'Feb', value: 15000 }, { month: 'Mar', value: 18000 }],
       Marketing: [{ campaign: 'Email', leads: 200 }, { campaign: 'Social', leads: 350 }, { campaign: 'SEO', leads: 150 }],
       'Customer Service': [{ month: 'Jan', tickets: 50 }, { month: 'Feb', tickets: 40 }, { month: 'Mar', tickets: 60 }],
@@ -71,6 +74,7 @@
     };
 
     const analyzeSentiment = (text) => {
+      if (!text || typeof text !== 'string') return 'Neutral'; // Handle undefined, null, or non-string
       const positiveWords = ['amazing', 'great', 'excellent', 'recommend', 'love', 'good', 'awesome', 'fantastic'];
       const negativeWords = ['disappointed', 'bad', 'poor', 'terrible', 'awful', 'needs improvement'];
       const lowerText = text.toLowerCase();
@@ -88,8 +92,48 @@
       return 'Neutral';
     };
 
-    const Sidebar = ({ setActiveTab, theme, toggleTheme, activeTab }) => {
+    const Sidebar = ({ setActiveTab, theme, toggleTheme, activeTab, setData, setToast }) => {
       const tabs = ['Sales', 'Marketing', 'Customer Service', 'Advertising', 'Branding', 'OKR', 'Revenue', 'Sentiment'];
+      const fileInputRef = useRef(null);
+
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type === 'text/csv') {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const text = e.target.result;
+            const rows = text.split('\n').map(row => row.split(','));
+            const headers = rows[0].map(h => h.trim());
+            if (!headers.includes('text')) {
+              setToast('Error: CSV must include a "text" column.');
+              return;
+            }
+            const newData = rows.slice(1)
+              .map(row => {
+                const obj = {};
+                headers.forEach((header, idx) => {
+                  obj[header] = row[idx]?.trim();
+                });
+                return obj;
+              })
+              .filter(obj => obj.text && obj.text.trim()); // Filter out rows with missing or empty text
+            if (newData.length === 0) {
+              setToast('Error: No valid data found in CSV.');
+              return;
+            }
+            setData(prevData => ({
+              ...prevData,
+              Sentiment: [...prevData.Sentiment, ...newData],
+            }));
+            localStorage.setItem('sentimentData', JSON.stringify(newData));
+            setToast('Data imported successfully!');
+          };
+          reader.readAsText(file);
+        } else {
+          setToast('Error: Please upload a valid CSV file.');
+        }
+      };
+
       return (
         <div className="w-72 bg-[var(--card-bg)] shadow-lg h-screen fixed flex flex-col rounded-r-xl">
           <div className="p-6 text-2xl font-bold text-[var(--primary)] flex items-center justify-between">
@@ -120,7 +164,8 @@
             <input
               type="file"
               accept=".csv"
-              onChange={(e) => handleFileUpload(e)}
+              ref={fileInputRef}
+              onChange={handleFileUpload}
               className="w-full text-sm text-[var(--text-color)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[var(--primary)] file:text-white hover:file:bg-[var(--primary)]/90 transition-colors"
               aria-label="Upload CSV file"
             />
@@ -178,7 +223,7 @@
               {data.map((row, idx) => (
                 <tr key={idx} className="border-t border-[var(--neutral)]/10 hover:bg-[var(--secondary)]/5">
                   {columns.map((col, colIdx) => (
-                    <td key={colIdx} className="p-4 text-[var(--text-color)] text-sm">{row[col.key]}</td>
+                    <td key={colIdx} className="p-4 text-[var(--text-color)] text-sm">{row[col.key] || '-'}</td>
                   ))}
                 </tr>
               ))}
@@ -193,6 +238,19 @@
         <h3 className="text-lg font-semibold text-[var(--primary)] tracking-tight">{title}</h3>
         <p className="text-3xl font-bold text-[var(--text-color)] mt-2">{value}</p>
         <p className="text-sm text-[var(--neutral)] mt-1">{subtext}</p>
+      </div>
+    );
+
+    const Toast = ({ message, onClose }) => (
+      <div className="fixed top-6 right-6 bg-[var(--secondary)] text-white p-4 rounded-xl shadow-lg toast">
+        <p className="text-sm">{message}</p>
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-white hover:text-[var(--text-color)]"
+          aria-label="Close toast"
+        >
+          ✕
+        </button>
       </div>
     );
 
@@ -247,32 +305,8 @@
       );
     };
 
-    const handleFileUpload = (event) => {
-      const file = event.target.files[0];
-      if (file && file.type === 'text/csv') {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const text = e.target.result;
-          const rows = text.split('\n').map(row => row.split(','));
-          const headers = rows[0];
-          const newData = rows.slice(1).map(row => {
-            const obj = {};
-            headers.forEach((header, idx) => {
-              obj[header.trim()] = row[idx]?.trim();
-            });
-            return obj;
-          });
-          localStorage.setItem('uploadedData', JSON.stringify(newData));
-          alert('Data imported successfully! Refresh to see changes.');
-        };
-        reader.readAsText(file);
-      } else {
-        alert('Please upload a valid CSV file.');
-      }
-    };
-
-    const TabContent = ({ activeTab }) => {
-      const sentimentData = Data.Sentiment.map(item => ({
+    const TabContent = ({ activeTab, data }) => {
+      const sentimentData = data.Sentiment.map(item => ({
         ...item,
         sentiment: analyzeSentiment(item.text),
       }));
@@ -288,7 +322,7 @@
             { key: 'value', label: 'Sales ($)' },
           ],
           scoreCards: [
-            { title: 'Total Sales', value: `$${Data.Sales.reduce((sum, item) => sum + item.value, 0)}`, subtext: 'Q1 2025' },
+            { title: 'Total Sales', value: `$${data.Sales.reduce((sum, item) => sum + item.value, 0)}`, subtext: 'Q1 2025' },
           ],
         },
         Marketing: {
@@ -301,7 +335,7 @@
             { key: 'leads', label: 'Leads' },
           ],
           scoreCards: [
-            { title: 'Total Leads', value: Data.Marketing.reduce((sum, item) => sum + item.leads, 0), subtext: 'Q1 2025' },
+            { title: 'Total Leads', value: data.Marketing.reduce((sum, item) => sum + item.leads, 0), subtext: 'Q1 2025' },
           ],
         },
         'Customer Service': {
@@ -314,7 +348,7 @@
             { key: 'tickets', label: 'Tickets' },
           ],
           scoreCards: [
-            { title: 'Total Tickets', value: Data['Customer Service'].reduce((sum, item) => sum + item.tickets, 0), subtext: 'Q1 2025' },
+            { title: 'Total Tickets', value: data['Customer Service'].reduce((sum, item) => sum + item.tickets, 0), subtext: 'Q1 2025' },
           ],
         },
         Advertising: {
@@ -327,7 +361,7 @@
             { key: 'spend', label: 'Spend ($)' },
           ],
           scoreCards: [
-            { title: 'Total Spend', value: `$${Data.Advertising.reduce((sum, item) => sum + item.spend, 0)}`, subtext: 'Q1 2025' },
+            { title: 'Total Spend', value: `$${data.Advertising.reduce((sum, item) => sum + item.spend, 0)}`, subtext: 'Q1 2025' },
           ],
         },
         Branding: {
@@ -340,7 +374,7 @@
             { key: 'impressions', label: 'Impressions' },
           ],
           scoreCards: [
-            { title: 'Total Impressions', value: Data.Branding.reduce((sum, item) => sum + item.impressions, 0), subtext: 'Q1 2025' },
+            { title: 'Total Impressions', value: data.Branding.reduce((sum, item) => sum + item.impressions, 0), subtext: 'Q1 2025' },
           ],
         },
         OKR: {
@@ -353,7 +387,7 @@
             { key: 'progress', label: 'Progress (%)' },
           ],
           scoreCards: [
-            { title: 'Average Progress', value: `${Math.round(Data.OKR.reduce((sum, item) => sum + item.progress, 0) / Data.OKR.length)}%`, subtext: 'Q1-Q2 2025' },
+            { title: 'Average Progress', value: `${Math.round(data.OKR.reduce((sum, item) => sum + item.progress, 0) / data.OKR.length)}%`, subtext: 'Q1-Q2 2025' },
           ],
         },
         Revenue: {
@@ -366,7 +400,7 @@
             { key: 'amount', label: 'Revenue ($)' },
           ],
           scoreCards: [
-            { title: 'Total Revenue', value: `$${Data.Revenue.reduce((sum, item) => sum + item.amount, 0)}`, subtext: 'Q1 2025' },
+            { title: 'Total Revenue', value: `$${data.Revenue.reduce((sum, item) => sum + item.amount, 0)}`, subtext: 'Q1 2025' },
           ],
         },
         Sentiment: {
@@ -403,8 +437,8 @@
             { key: 'date', label: 'Date' },
           ],
           scoreCards: [
-            { title: 'Positive Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Positive').length / sentimentData.length) * 100)}%`, subtext: 'Q1 2025' },
-            { title: 'Negative Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Negative').length / sentimentData.length) * 100)}%`, subtext: 'Q1 2025' },
+            { title: 'Positive Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Positive').length / (sentimentData.length || 1)) * 100)}%`, subtext: 'Q1 2025' },
+            { title: 'Negative Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Negative').length / (sentimentData.length || 1)) * 100)}%`, subtext: 'Q1 2025' },
           ],
         },
       };
@@ -432,7 +466,7 @@
               <div key={idx} className="bg-[var(--card-bg)] p-6 rounded-xl shadow-md card">
                 <h3 className="text-lg font-semibold text-[var(--primary)] mb-4 tracking-tight">{chart.title}</h3>
                 <ChartComponent
-                  data={chart.data || Data[activeTab]}
+                  data={chart.data || data[activeTab]}
                   type={chart.type}
                   xKey={chart.xKey}
                   yKey={chart.yKey}
@@ -443,7 +477,7 @@
             ))}
           </div>
           <h3 className="text-lg font-semibold text-[var(--primary)] mb-4 tracking-tight">Data Table</h3>
-          <DataTable data={activeTab === 'Sentiment' ? sentimentData : Data[activeTab]} columns={table} />
+          <DataTable data={activeTab === 'Sentiment' ? sentimentData : data[activeTab]} columns={table} />
         </div>
       );
     };
@@ -451,12 +485,26 @@
     const App = () => {
       const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'Sales');
       const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+      const [data, setData] = useState(() => {
+        const savedSentiment = localStorage.getItem('sentimentData');
+        return {
+          ...initialData,
+          Sentiment: savedSentiment ? [...initialData.Sentiment, ...JSON.parse(savedSentiment)] : initialData.Sentiment,
+        };
+      });
+      const [toast, setToast] = useState(null);
 
       useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
         localStorage.setItem('theme', theme);
-        document.body.setAttribute('data-theme', theme);
       }, [activeTab, theme]);
+
+      useEffect(() => {
+        if (toast) {
+          const timer = setTimeout(() => setToast(null), 3000);
+          return () => clearTimeout(timer);
+        }
+      }, [toast]);
 
       const toggleTheme = () => {
         setTheme(theme === 'light' ? 'dark' : 'light');
@@ -464,11 +512,12 @@
 
       return (
         <div className="flex min-h-screen bg-[var(--bg-color)]">
-          <Sidebar setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} activeTab={activeTab} />
+          <Sidebar setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} activeTab={activeTab} setData={setData} setToast={setToast} />
           <div className="ml-72 p-8 w-full">
-            <TabContent activeTab={activeTab} />
+            <TabContent activeTab={activeTab} data={data} />
           </div>
           <AccessibilityWidget />
+          {toast && <Toast message={toast} onClose={() => setToast(null)} />}
         </div>
       );
     };
