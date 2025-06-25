@@ -13,24 +13,43 @@
     :root {
       --primary: #1e40af;
       --secondary: #34d399;
+      --accent: #7c3aed;
+      --neutral: #6b7280;
     }
-    .accessibility-widget { transition: all 0.3s ease; }
-    .accessibility-widget button:focus { outline: 2px solid var(--primary); }
+    .accessibility-widget { transition: transform 0.3s ease, opacity 0.3s ease; }
+    .accessibility-widget button:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
     [data-theme="dark"] {
-      --bg-color: #1f2937;
-      --text-color: #f3f4f6;
-      --card-bg: #374151;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      --bg-color: #111827;
+      --text-color: #e5e7eb;
+      --card-bg: #1f2937;
+      --shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     }
     [data-theme="light"] {
-      --bg-color: #f3f4f6;
-      --text-color: #1f2937;
+      --bg-color: #f9fafb;
+      --text-color: #111827;
       --card-bg: #ffffff;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .sidebar-nav button {
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .sidebar-nav button:hover {
+      transform: translateX(4px);
+    }
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
     }
   </style>
 </head>
-<body class="font-sans transition-colors duration-300" data-theme="light">
+<body class="transition-colors duration-300" data-theme="light">
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
@@ -44,27 +63,52 @@
       Branding: [{ channel: 'Twitter', impressions: 10000 }, { channel: 'Instagram', impressions: 8000 }],
       OKR: [{ goal: 'Q1', progress: 75 }, { goal: 'Q2', progress: 50 }],
       Revenue: [{ month: 'Jan', amount: 20000 }, { month: 'Feb', amount: 25000 }, { month: 'Mar', amount: 30000 }],
+      Sentiment: [
+        { source: 'Review', text: 'Amazing product, highly recommend!', sentiment: null, date: '2025-01-10' },
+        { source: 'Twitter', text: 'Disappointed with the service, needs improvement.', sentiment: null, date: '2025-02-15' },
+        { source: 'Review', text: 'Good value for money, decent experience.', sentiment: null, date: '2025-03-01' },
+      ],
+    };
+
+    const analyzeSentiment = (text) => {
+      const positiveWords = ['amazing', 'great', 'excellent', 'recommend', 'love', 'good', 'awesome', 'fantastic'];
+      const negativeWords = ['disappointed', 'bad', 'poor', 'terrible', 'awful', 'needs improvement'];
+      const lowerText = text.toLowerCase();
+      let score = 0;
+
+      positiveWords.forEach(word => {
+        if (lowerText.includes(word)) score += 1;
+      });
+      negativeWords.forEach(word => {
+        if (lowerText.includes(word)) score -= 1;
+      });
+
+      if (score > 0) return 'Positive';
+      if (score < 0) return 'Negative';
+      return 'Neutral';
     };
 
     const Sidebar = ({ setActiveTab, theme, toggleTheme, activeTab }) => {
-      const tabs = ['Sales', 'Marketing', 'Customer Service', 'Advertising', 'Branding', 'OKR', 'Revenue'];
+      const tabs = ['Sales', 'Marketing', 'Customer Service', 'Advertising', 'Branding', 'OKR', 'Revenue', 'Sentiment'];
       return (
-        <div className="w-64 bg-[var(--card-bg)] shadow-md h-screen fixed flex flex-col rounded-r-md">
-          <div className="p-4 text-xl font-bold text-[var(--primary)] flex items-center justify-between">
-            <span>BI Dashboard</span>
+        <div className="w-72 bg-[var(--card-bg)] shadow-lg h-screen fixed flex flex-col rounded-r-xl">
+          <div className="p-6 text-2xl font-bold text-[var(--primary)] flex items-center justify-between">
+            <span className="tracking-tight">BI Dashboard</span>
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-[var(--secondary)]/20 transition-colors"
+              className="p-2 rounded-full hover:bg-[var(--secondary)]/10 transition-colors"
               aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
           </div>
-          <nav className="mt-4 flex-1">
+          <nav className="mt-2 flex-1 sidebar-nav px-4">
             {tabs.map((tab) => (
               <button
                 key={tab}
-                className="w-full text-left p-4 hover:bg-[var(--secondary)]/10 rounded-md transition-colors text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                className={`w-full text-left py-3 px-4 mb-2 rounded-lg transition-colors text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] ${
+                  tab === activeTab ? 'bg-[var(--primary)] text-white' : 'hover:bg-[var(--secondary)]/10'
+                }`}
                 onClick={() => setActiveTab(tab)}
                 aria-current={tab === activeTab ? 'page' : undefined}
               >
@@ -72,12 +116,12 @@
               </button>
             ))}
           </nav>
-          <div className="p-4">
+          <div className="p-6">
             <input
               type="file"
               accept=".csv"
               onChange={(e) => handleFileUpload(e)}
-              className="w-full text-sm text-[var(--text-color)] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-[var(--primary)] file:text-white hover:file:bg-[var(--primary)]/80"
+              className="w-full text-sm text-[var(--text-color)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[var(--primary)] file:text-white hover:file:bg-[var(--primary)]/90 transition-colors"
               aria-label="Upload CSV file"
             />
           </div>
@@ -99,35 +143,42 @@
               backgroundColor: colors?.background || (type === 'bar' ? 'var(--secondary)' : 'var(--primary)'),
               borderColor: colors?.border || 'var(--primary)',
               borderWidth: 2,
+              borderRadius: type === 'bar' ? 8 : 0,
             }],
           },
           options: {
-            scales: { y: { beginAtZero: true } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+              x: { grid: { display: false } },
+            },
             responsive: true,
             maintainAspectRatio: true,
+            plugins: {
+              legend: { labels: { color: 'var(--text-color)' } },
+            },
           },
         });
         return () => chart.destroy();
       }, [data, type, xKey, yKey, title, colors]);
-      return <canvas ref={canvasRef} className="w-full h-64" aria-label={`${title} chart`}></canvas>;
+      return <canvas ref={canvasRef} className="w-full h-72" aria-label={`${title} chart`}></canvas>;
     };
 
     const DataTable = ({ data, columns }) => {
       return (
         <div className="overflow-x-auto mt-6">
-          <table className="min-w-full bg-[var(--card-bg)] rounded-md shadow-md">
+          <table className="min-w-full bg-[var(--card-bg)] rounded-xl shadow-md">
             <thead>
               <tr className="bg-[var(--primary)] text-white">
                 {columns.map((col, idx) => (
-                  <th key={idx} className="p-4 text-left">{col.label}</th>
+                  <th key={idx} className="p-4 text-left text-sm font-semibold tracking-wide">{col.label}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.map((row, idx) => (
-                <tr key={idx} className="border-t">
+                <tr key={idx} className="border-t border-[var(--neutral)]/10 hover:bg-[var(--secondary)]/5">
                   {columns.map((col, colIdx) => (
-                    <td key={colIdx} className="p-4 text-[var(--text-color)]">{row[col.key]}</td>
+                    <td key={colIdx} className="p-4 text-[var(--text-color)] text-sm">{row[col.key]}</td>
                   ))}
                 </tr>
               ))}
@@ -138,10 +189,10 @@
     };
 
     const ScoreCard = ({ title, value, subtext }) => (
-      <div className="bg-[var(--card-bg)] p-4 rounded-md shadow-md">
-        <h3 className="text-lg font-medium text-[var(--primary)]">{title}</h3>
-        <p className="text-2xl font-bold text-[var(--text-color)]">{value}</p>
-        <p className="text-sm text-gray-500">{subtext}</p>
+      <div className="bg-[var(--card-bg)] p-6 rounded-xl shadow-md card">
+        <h3 className="text-lg font-semibold text-[var(--primary)] tracking-tight">{title}</h3>
+        <p className="text-3xl font-bold text-[var(--text-color)] mt-2">{value}</p>
+        <p className="text-sm text-[var(--neutral)] mt-1">{subtext}</p>
       </div>
     );
 
@@ -162,29 +213,29 @@
       };
 
       return (
-        <div className="fixed bottom-4 right-4 accessibility-widget">
+        <div className="fixed bottom-6 right-6 accessibility-widget">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-3 bg-[var(--primary)] text-white rounded-full shadow-md hover:bg-[var(--primary)]/80 transition-colors"
+            className="p-4 bg-[var(--primary)] text-white rounded-full shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
             aria-label="Toggle accessibility options"
           >
             ♿
           </button>
           {isOpen && (
-            <div className="absolute bottom-12 right-0 bg-[var(--card-bg)] p-4 rounded-md shadow-md w-64">
-              <h3 className="text-lg font-medium text-[var(--text-color)] mb-2">Accessibility</h3>
-              <div className="flex flex-col gap-2">
+            <div className="absolute bottom-16 right-0 bg-[var(--card-bg)] p-6 rounded-xl shadow-lg w-72">
+              <h3 className="text-lg font-semibold text-[var(--text-color)] mb-4">Accessibility</h3>
+              <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--text-color)]">Font Size</span>
-                  <div>
-                    <button onClick={() => adjustFontSize(-2)} className="p-2 rounded-md bg-[var(--secondary)]/20" aria-label="Decrease font size">-</button>
-                    <span className="mx-2 text-[var(--text-color)]">{fontSize}px</span>
-                    <button onClick={() => adjustFontSize(2)} className="p-2 rounded-md bg-[var(--secondary)]/20" aria-label="Increase font size">+</button>
+                  <span className="text-[var(--text-color)] text-sm">Font Size</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => adjustFontSize(-2)} className="p-2 rounded-lg bg-[var(--secondary)]/10 hover:bg-[var(--secondary)]/20" aria-label="Decrease font size">-</button>
+                    <span className="text-[var(--text-color)] text-sm">{fontSize}px</span>
+                    <button onClick={() => adjustFontSize(2)} className="p-2 rounded-lg bg-[var(--secondary)]/10 hover:bg-[var(--secondary)]/20" aria-label="Increase font size">+</button>
                   </div>
                 </div>
                 <button
                   onClick={toggleHighContrast}
-                  className="p-2 rounded-md bg-[var(--secondary)]/20 text-[var(--text-color)] hover:bg-[var(--secondary)]/30"
+                  className="p-3 rounded-lg bg-[var(--secondary)]/10 text-[var(--text-color)] hover:bg-[var(--secondary)]/20 text-sm"
                   aria-label={highContrast ? 'Disable high contrast' : 'Enable high contrast'}
                 >
                   {highContrast ? 'Disable High Contrast' : 'Enable High Contrast'}
@@ -221,6 +272,11 @@
     };
 
     const TabContent = ({ activeTab }) => {
+      const sentimentData = Data.Sentiment.map(item => ({
+        ...item,
+        sentiment: analyzeSentiment(item.text),
+      }));
+
       const config = {
         Sales: {
           charts: [
@@ -313,32 +369,70 @@
             { title: 'Total Revenue', value: `$${Data.Revenue.reduce((sum, item) => sum + item.amount, 0)}`, subtext: 'Q1 2025' },
           ],
         },
+        Sentiment: {
+          charts: [
+            {
+              type: 'bar',
+              xKey: 'sentiment',
+              yKey: 'count',
+              title: 'Sentiment Distribution',
+              data: [
+                { sentiment: 'Positive', count: sentimentData.filter(d => d.sentiment === 'Positive').length },
+                { sentiment: 'Neutral', count: sentimentData.filter(d => d.sentiment === 'Neutral').length },
+                { sentiment: 'Negative', count: sentimentData.filter(d => d.sentiment === 'Negative').length },
+              ],
+              colors: { background: ['#34d399', '#6b7280', '#ef4444'] },
+            },
+            {
+              type: 'pie',
+              xKey: 'sentiment',
+              yKey: 'count',
+              title: 'Sentiment Breakdown',
+              data: [
+                { sentiment: 'Positive', count: sentimentData.filter(d => d.sentiment === 'Positive').length },
+                { sentiment: 'Neutral', count: sentimentData.filter(d => d.sentiment === 'Neutral').length },
+                { sentiment: 'Negative', count: sentimentData.filter(d => d.sentiment === 'Negative').length },
+              ],
+              colors: { background: ['#34d399', '#6b7280', '#ef4444'] },
+            },
+          ],
+          table: [
+            { key: 'source', label: 'Source' },
+            { key: 'text', label: 'Text' },
+            { key: 'sentiment', label: 'Sentiment' },
+            { key: 'date', label: 'Date' },
+          ],
+          scoreCards: [
+            { title: 'Positive Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Positive').length / sentimentData.length) * 100)}%`, subtext: 'Q1 2025' },
+            { title: 'Negative Sentiment', value: `${Math.round((sentimentData.filter(d => d.sentiment === 'Negative').length / sentimentData.length) * 100)}%`, subtext: 'Q1 2025' },
+          ],
+        },
       };
 
       if (!config[activeTab]) {
         return (
-          <div className="p-6 bg-[var(--card-bg)] rounded-md shadow-md">
-            <h2 className="text-2xl font-semibold text-[var(--primary)] mb-4">Error</h2>
-            <p className="text-red-600">Invalid tab selected. Please choose a valid tab.</p>
+          <div className="p-8 bg-[var(--card-bg)] rounded-xl shadow-md card">
+            <h2 className="text-2xl font-bold text-[var(--primary)] mb-4 tracking-tight">Error</h2>
+            <p className="text-red-500 text-sm">Invalid tab selected. Please choose a valid tab.</p>
           </div>
         );
       }
 
       const { charts, table, scoreCards } = config[activeTab];
       return (
-        <div className="p-6 bg-[var(--card-bg)] rounded-md shadow-md">
-          <h2 className="text-2xl font-semibold text-[var(--primary)] mb-4">{activeTab}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="p-8 bg-[var(--card-bg)] rounded-xl shadow-md card">
+          <h2 className="text-2xl font-bold text-[var(--primary)] mb-6 tracking-tight">{activeTab}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {scoreCards.map((card, idx) => (
               <ScoreCard key={idx} title={card.title} value={card.value} subtext={card.subtext} />
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {charts.map((chart, idx) => (
-              <div key={idx} className="bg-[var(--card-bg)] p-4 rounded-md shadow-md">
-                <h3 className="text-lg font-medium text-[var(--primary)] mb-2">{chart.title}</h3>
+              <div key={idx} className="bg-[var(--card-bg)] p-6 rounded-xl shadow-md card">
+                <h3 className="text-lg font-semibold text-[var(--primary)] mb-4 tracking-tight">{chart.title}</h3>
                 <ChartComponent
-                  data={Data[activeTab]}
+                  data={chart.data || Data[activeTab]}
                   type={chart.type}
                   xKey={chart.xKey}
                   yKey={chart.yKey}
@@ -348,8 +442,8 @@
               </div>
             ))}
           </div>
-          <h3 className="text-lg font-medium text-[var(--primary)] mb-2">Data Table</h3>
-          <DataTable data={Data[activeTab]} columns={table} />
+          <h3 className="text-lg font-semibold text-[var(--primary)] mb-4 tracking-tight">Data Table</h3>
+          <DataTable data={activeTab === 'Sentiment' ? sentimentData : Data[activeTab]} columns={table} />
         </div>
       );
     };
@@ -371,7 +465,7 @@
       return (
         <div className="flex min-h-screen bg-[var(--bg-color)]">
           <Sidebar setActiveTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} activeTab={activeTab} />
-          <div className="ml-64 p-6 w-full">
+          <div className="ml-72 p-8 w-full">
             <TabContent activeTab={activeTab} />
           </div>
           <AccessibilityWidget />
